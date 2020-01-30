@@ -1,172 +1,163 @@
 (function() {
-  // initialize buttons
-  var addButton = document.querySelector("button.add");
-  var form = document.querySelector("form");
-  addButton.addEventListener("click", addFamilyMember);
-  form.addEventListener("submit", submitForm);
+  var household, ui;
 
-  function clearForm() {
-    document.getElementsByName("age")[0].value = "";
-    document.getElementsByName("rel")[0].value = "";
-    document.getElementsByName("smoker")[0].checked = false;
-  }
+  household = {
+    familyMembers: [],
 
-  // ADD AND REMOVE HOUSEHOLD MEMBERS
+    addToHousehold: function(familyMember) {
+      this.familyMembers.push(familyMember);
+    },
 
-  function collectFamilyMemberFormData() {
-    return {
-      age: document.getElementsByName("age")[0].value,
-      relationship: document.getElementsByName("rel")[0].value,
-      smoker: document.getElementsByName("smoker")[0].checked
-    };
-  }
+    removeFromHousehold: function(index) {
+      this.familyMembers.splice(index, 1);
+    },
 
-  function addFamilyMember(e) {
-    e.preventDefault();
-    var submissionData = collectFamilyMemberFormData();
-    var validationErrors = failedFormValidation(submissionData);
+    failedFormValidation: function(familyMember) {
+      var errors = [];
+      var ageError = this.validateAge(familyMember.age);
+      var relationshipError = this.validateRelationship(
+        familyMember.relationship
+      );
 
-    if (validationErrors.length > 0) {
-      populateValidationErrors(validationErrors);
-      return;
+      if (ageError) {
+        errors.push(ageError);
+      }
+
+      if (relationshipError) {
+        errors.push(relationshipError);
+      }
+
+      return errors;
+    },
+
+    validateAge: function(age) {
+      if (age === "") {
+        return "Age must be filled out";
+      }
+
+      if (!Number.isInteger(parseInt(age))) {
+        return "Age must be an integer";
+      }
+
+      if (parseInt(age) <= 0) {
+        return "Age must be greater than 0";
+      }
+
+      return false;
+    },
+
+    validateRelationship: function(relationship) {
+      if (relationship.length > 0) return;
+
+      return "You must choose a relationship";
     }
+  };
 
-    removeValidationErrors();
-    clearForm();
-    appendFamilyMember(submissionData);
-  }
+  ui = {
+    form: document.querySelector("form"),
+    debug: document.querySelector(".debug"),
+    familyMemberList: document.querySelector(".household"),
+    addButton: document.querySelector("button.add"),
+    household: household,
 
-  function removeFamilyMember(e) {
-    e.preventDefault();
-    var deleteButton = e.currentTarget;
-    deleteButton.removeEventListener("click", removeFamilyMember);
-    deleteButton.parentElement.remove();
-  }
+    clearForm: function() {
+      this.form.elements["age"].value = "";
+      this.form.elements["rel"].value = "";
+      this.form.elements["smoker"].checked = false;
+    },
 
-  function appendFamilyMember(submissionData) {
-    var familyMemberListItem = createFamilyMemberListItem(submissionData);
-    document.querySelector(".household").appendChild(familyMemberListItem);
-  }
+    alertValidationErrors: function(errorsArr) {
+      alert("Error: " + errorsArr.join(", "));
+    },
 
-  // VALIDATIONS
-
-  function failedFormValidation(submissionData) {
-    var errors = [];
-    var ageError = validateAge(submissionData.age);
-    var relationshipError = validateRelationship(submissionData.relationship);
-
-    if (ageError) {
-      errors.push(ageError);
-    }
-
-    if (relationshipError) {
-      errors.push(relationshipError);
-    }
-
-    return errors;
-  }
-
-  function validateAge(age) {
-    if (age === "") {
-      return "Age must be filled out";
-    }
-
-    if (!Number.isInteger(parseInt(age))) {
-      return "Age must be an integer";
-    }
-
-    if (parseInt(age) <= 0) {
-      return "Age must be greater than 0";
-    }
-
-    return false;
-  }
-
-  function validateRelationship(relationship) {
-    if (relationship.length > 0) return;
-
-    return "You must choose a relationship";
-  }
-
-  function removeValidationErrors() {
-    var errorContainer = document.getElementById("errorContainer");
-
-    if (errorContainer) {
-      errorContainer.remove();
-    }
-  }
-
-  function populateValidationErrors(errors) {
-    var errorMessage = "Error: " + errors.join(", ");
-    alert(errorMessage);
-  }
-
-  // HTML ELEMENT GENERATORS
-
-  function containerWithDataAttributes(submissionData) {
-    var familyMemberListItem = document.createElement("li");
-    familyMemberListItem.setAttribute("data-age", submissionData.age);
-    familyMemberListItem.setAttribute(
-      "data-relationship",
-      submissionData.relationship
-    );
-    familyMemberListItem.setAttribute("data-smoker", submissionData.smoker);
-    familyMemberListItem.className = "familyListItem";
-
-    return familyMemberListItem;
-  }
-
-  function createFamilyMemberListItem(submissionData) {
-    var familyMemberContainer = containerWithDataAttributes(submissionData);
-
-    var age = document.createElement("div");
-    age.innerText = "Age: " + submissionData.age;
-
-    var relationship = document.createElement("div");
-    relationship.innerText = "Relationship: " + submissionData.relationship;
-
-    var smoker = document.createElement("div");
-    smoker.innerText = "Smoker: " + submissionData.smoker;
-
-    var deleteButton = document.createElement("button");
-    deleteButton.innerText = "DELETE";
-    deleteButton.addEventListener("click", removeFamilyMember);
-
-    var childElements = [age, relationship, smoker, deleteButton];
-
-    for (var i = 0; i < childElements.length; i++) {
-      familyMemberContainer.appendChild(childElements[i]);
-    }
-
-    return familyMemberContainer;
-  }
-
-  // FORM SUBMISSION TO "SERVER"
-
-  function compileFamilyJSON() {
-    var payload;
-    var listItem;
-    var familyMembers = [];
-    var listItems = document.querySelectorAll("li.familyListItem");
-
-    for (var i = 0; i < listItems.length; i++) {
-      listItem = listItems[i];
-      payload = {
-        age: listItem.getAttribute("data-age"),
-        relationship: listItem.getAttribute("data-relationship"),
-        smoker: listItem.getAttribute("data-smoker")
+    collectFamilyMemberFormData: function() {
+      return {
+        age: this.form.elements["age"].value,
+        relationship: this.form.elements["rel"].value,
+        smoker: this.form.elements["smoker"].checked
       };
-      familyMembers.push(payload);
+    },
+
+    addFamilyMember: function(e) {
+      e.preventDefault();
+      var familyMember = this.collectFamilyMemberFormData();
+      var validationErrors = this.household.failedFormValidation(familyMember);
+
+      if (validationErrors.length > 0) {
+        this.alertValidationErrors(validationErrors);
+        return;
+      }
+
+      this.household.addToHousehold(familyMember);
+      this.clearForm();
+      this.render();
+    },
+
+    removeFamilyMember: function(e) {
+      e.preventDefault();
+      var deleteButton = e.currentTarget;
+      deleteButton.removeEventListener("click", this.removeFamilyMember);
+
+      var index = parseInt(
+        deleteButton.parentElement.getAttribute("data-index")
+      );
+
+      this.household.removeFromHousehold(index);
+      this.render();
+    },
+
+    submitHousehold: function(e) {
+      e.preventDefault();
+
+      var payload = JSON.stringify(this.household.familyMembers);
+      this.debug.innerHTML = payload;
+      this.debug.style.display = "block";
+    },
+
+    renderFamilyMember: function(familyMember, i) {
+      var familyMemberContainer = document.createElement("li");
+      familyMemberContainer.setAttribute("data-index", i);
+
+      var age = document.createElement("div");
+      age.innerText = "Age: " + familyMember.age;
+
+      var relationship = document.createElement("div");
+      relationship.innerText = "Relationship: " + familyMember.relationship;
+
+      var smoker = document.createElement("div");
+      smoker.innerText = "Smoker: " + familyMember.smoker;
+
+      var deleteButton = document.createElement("button");
+      deleteButton.innerText = "DELETE";
+      deleteButton.addEventListener(
+        "click",
+        this.removeFamilyMember.bind(this)
+      );
+
+      var childElements = [age, relationship, smoker, deleteButton];
+
+      for (var i = 0; i < childElements.length; i++) {
+        familyMemberContainer.appendChild(childElements[i]);
+      }
+
+      return familyMemberContainer;
+    },
+
+    render: function() {
+      this.familyMemberList.innerHTML = "";
+
+      for (var i = 0; i < this.household.familyMembers.length; i++) {
+        this.familyMemberList.appendChild(
+          this.renderFamilyMember(this.household.familyMembers[i], i)
+        );
+      }
     }
+  };
 
-    return JSON.stringify(familyMembers);
+  if (ui.form) {
+    ui.addButton.addEventListener("click", ui.addFamilyMember.bind(ui));
+    ui.form.addEventListener("submit", ui.submitHousehold.bind(ui));
   }
 
-  function submitForm(e) {
-    e.preventDefault();
-    var familyJSON = compileFamilyJSON();
-    var debug = document.querySelector(".debug");
-    debug.innerHTML = familyJSON;
-    debug.style.display = "block";
-  }
+  ui.render();
 })();
