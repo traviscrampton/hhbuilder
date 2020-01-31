@@ -1,4 +1,5 @@
 (function() {
+  // household stores the data, ui renders the html on the page
   var household, ui;
 
   household = {
@@ -12,6 +13,7 @@
       this.familyMembers.splice(index, 1);
     },
 
+    // compile any errors after adding a household
     failedFormValidation: function(familyMember) {
       var errors = [];
       var ageError = this.validateAge(familyMember.age);
@@ -60,6 +62,7 @@
     addButton: document.querySelector("button.add"),
     household: household,
 
+    // reset form to blank inputs
     clearForm: function() {
       this.form.elements["age"].value = "";
       this.form.elements["rel"].value = "";
@@ -77,7 +80,7 @@
         smoker: this.form.elements["smoker"].checked
       };
     },
-
+    // callback to add button, adds a family member to the household
     addFamilyMember: function(e) {
       e.preventDefault();
       var familyMember = this.collectFamilyMemberFormData();
@@ -90,12 +93,13 @@
 
       this.household.addToHousehold(familyMember);
       this.clearForm();
-      this.render();
+      this.render(); // calling render here to re-render the whole list with the newly added item
     },
 
     removeFamilyMember: function(e) {
       e.preventDefault();
       var deleteButton = e.currentTarget;
+      // remove click listener on delete button to prevent memory leak
       deleteButton.removeEventListener("click", this.removeFamilyMember);
 
       var index = parseInt(
@@ -108,15 +112,15 @@
 
     submitHousehold: function(e) {
       e.preventDefault();
-
-      var payload = JSON.stringify(this.household.familyMembers);
-      this.debug.innerHTML = payload;
+      // convert familyMembers to JSON and populate .debug pre
+      this.debug.innerHTML = JSON.stringify(this.household.familyMembers);
       this.debug.style.display = "block";
     },
 
+    // creates HTML list item for a single family member in a household
     renderFamilyMember: function(familyMember, i) {
       var familyMemberContainer = document.createElement("li");
-      familyMemberContainer.setAttribute("data-index", i);
+      familyMemberContainer.setAttribute("data-index", i); // add data attribute of index to be able to remove entry by index
 
       var age = document.createElement("div");
       age.innerText = "Age: " + familyMember.age;
@@ -144,6 +148,7 @@
     },
 
     render: function() {
+      // each render clears out the HTML in familyMemberList and re-renders family members
       this.familyMemberList.innerHTML = "";
 
       for (var i = 0; i < this.household.familyMembers.length; i++) {
@@ -154,10 +159,11 @@
     }
   };
 
+  // initialize the click and submit listeners on the form
   if (ui.form) {
     ui.addButton.addEventListener("click", ui.addFamilyMember.bind(ui));
     ui.form.addEventListener("submit", ui.submitHousehold.bind(ui));
   }
 
-  ui.render();
+  ui.render(); // initial render of the familyList.
 })();
